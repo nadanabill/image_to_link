@@ -1,6 +1,6 @@
 # Image to Link 🔗
 
-Upload an image from your phone or laptop and get a **direct, permanent, public HTTPS link** — perfect for Firebase in-app / push notification images, which only accept a URL.
+Upload an image from your phone or laptop and get a **direct, permanent, public HTTPS link** you can use anywhere — websites, apps, emails, docs, push notifications, chat, Markdown, anything that takes an image URL.
 
 **Free. No server. Your images live on your own GitHub account.**
 
@@ -12,7 +12,8 @@ Upload an image from your phone or laptop and get a **direct, permanent, public 
 - On first use you paste a GitHub token. The page creates a public repo on **your** account (default name `img-links`) and turns on GitHub Pages for it.
 - Each upload is committed to `images/` in that repo through the GitHub API, straight from your browser.
 - You get a link like `https://<you>.github.io/img-links/images/offer-20261111-153000-ab12.jpg`.
-- Images over 1 MB (or in formats like WebP/HEIC) are re-encoded to JPEG under 1 MB, because FCM notification images are limited to 1 MB.
+- Images are uploaded **at original quality**. JPG, PNG, GIF and WebP are kept as-is; formats browsers can't display (like iPhone HEIC) are converted to JPEG, and anything over 20 MB is shrunk.
+- Optional **"Shrink under 1 MB"** switch for places with a size limit (e.g. Firebase notification images, emails).
 - The token is stored only in your browser's `localStorage`. Nothing is sent anywhere except `api.github.com`.
 
 ## Setup (once, ~3 minutes)
@@ -33,18 +34,18 @@ If GitHub Pages can't be enabled automatically, the tool shows a button to the r
 ## Notes
 
 - After an upload, GitHub Pages needs ~30–90 seconds to publish. The tool watches the link and tells you when it's live.
-- Free limits (GitHub Pages): ~1 GB per site, ~100 GB bandwidth/month — plenty for notification images.
+- Free limits (GitHub Pages): ~1 GB per site, ~100 GB bandwidth/month.
 - Don't upload anything private: the repo is public.
 
 ---
 
 ## بالعربي
 
-أداة بترفع صورة من الموبايل أو اللابتوب وتديك **لينك مباشر وثابت** للصورة، مناسب لصور إشعارات Firebase.
+أداة بترفع صورة من الموبايل أو اللابتوب وتديك **لينك مباشر وثابت** للصورة، تستخدمه في أي مكان: موقع، تطبيق، إيميل، إشعارات، أي حاجة بتقبل لينك صورة.
 
 - مجانية ومفيش سيرفر. الصور بتترفع على حساب GitHub بتاعك إنت.
 - أول مرة: تعمل token من GitHub وتلصقه، والأداة تعمل الـ repo وتفعّل GitHub Pages لوحدها.
-- الصور اللي أكبر من 1 ميجا بتتضغط تلقائيًا.
+- الصورة بتترفع بجودتها الأصلية، وفيه اختيار "صغّر لأقل من 1 ميجا" للأماكن اللي ليها حد للحجم زي إشعارات Firebase.
 - بعد الرفع اللينك بياخد حوالي دقيقة لحد ما يشتغل، والأداة بتقولك أول ما يبقى جاهز.
 - الـ token بيتحفظ في المتصفح بتاعك بس.
 

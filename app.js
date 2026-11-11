@@ -4,8 +4,10 @@
   'use strict';
 
   const API = 'https://api.github.com';
-  const MAX_BYTES = 1000 * 1000;      // FCM notification image limit is 1 MB
-  const MAX_DIM = 2048;               // longest side when re-encoding
+  const MAX_BYTES = 20 * 1000 * 1000; // larger files are shrunk (keeps the repo small and uploads reliable)
+  const MAX_DIM = 4096;               // longest side when we have to re-encode
+  const SMALL_BYTES = 1000 * 1000;    // "compress" option: under 1 MB (e.g. Firebase notification images)
+  const SMALL_DIM = 2048;
   const IMG_DIR = 'images';
   const STORE = 'img2link.v1';
 
@@ -33,21 +35,24 @@
       openSettings: 'فتح الإعدادات ↗',
       recheck: 'فعّلته، اتأكد تاني',
       dropText: 'اختار صورة، أو اسحبها هنا، أو الصقها (Ctrl+V)',
-      dropHint: 'لو أكبر من 1 ميجا هتتضغط تلقائيًا عشان تشتغل في إشعارات Firebase',
+      dropHint: 'JPG أو PNG أو GIF أو WebP أو صور الآيفون (HEIC). الصورة بتترفع بجودتها الأصلية.',
+      compressLabel: 'صغّر الصورة لأقل من 1 ميجا',
+      compressHint: 'مفيد للأماكن اللي ليها حد للحجم، زي صور إشعارات Firebase أو الإيميلات.',
+      sOriginal: 'بالجودة الأصلية',
       nameLabel: 'اسم الملف (اختياري)',
       upload: 'رفع',
       cancel: 'إلغاء',
       copy: 'نسخ',
       copied: 'اتنسخ ✓',
       waitingLive: '⏳ GitHub بينشر الصورة... اللينك هيشتغل خلال دقيقة تقريبًا',
-      live: '✅ اللينك شغال وجاهز تحطه في الإشعار',
+      live: '✅ اللينك شغال وجاهز تستخدمه في أي مكان',
       liveTimeout: '⚠️ النشر أخد وقت أطول من العادي. جرّب تفتح اللينك بعد شوية.',
       myImages: 'صوري',
       refresh: 'تحديث',
       noImages: 'مفيش صور لسه.',
       footer: 'مفتوح المصدر — صورك على حسابك إنت.',
       del: 'حذف',
-      confirmDel: 'تحذف الصورة دي؟ أي إشعار بيستخدم اللينك ده الصورة مش هتظهر فيه.',
+      confirmDel: 'تحذف الصورة دي؟ أي مكان بيستخدم اللينك ده الصورة مش هتظهر فيه.',
       deleted: 'اتحذفت',
       confirmLogout: 'هتمسح الـ token من المتصفح ده. الصور هتفضل على GitHub. تكمل؟',
       // progress / errors
@@ -67,7 +72,7 @@
       ePrivate: 'الـ repo ده Private. لازم يكون Public عشان اللينكات تشتغل مجانًا.',
       eNotImage: 'الملف ده مش صورة.',
       eDecode: 'المتصفح مش قادر يقرا الصورة دي. جرّب JPG أو PNG.',
-      eTooBig: 'معرفتش أضغط الصورة تحت 1 ميجا.',
+      eTooBig: 'معرفتش أصغّر الصورة تحت {size}.',
       sPreparing: 'بجهّز الصورة...',
       sCompressed: 'اتضغطت من {from} لـ {to}',
       sUploading: 'برفع...',
@@ -96,21 +101,24 @@
       openSettings: 'Open settings ↗',
       recheck: 'I enabled it, check again',
       dropText: 'Choose an image, drag it here, or paste it (Ctrl+V)',
-      dropHint: 'Images over 1 MB are compressed automatically so they work in Firebase notifications',
+      dropHint: 'JPG, PNG, GIF, WebP or iPhone photos (HEIC). Images are uploaded at original quality.',
+      compressLabel: 'Shrink the image under 1 MB',
+      compressHint: 'Useful where size is limited, like Firebase notification images or emails.',
+      sOriginal: 'original quality',
       nameLabel: 'File name (optional)',
       upload: 'Upload',
       cancel: 'Cancel',
       copy: 'Copy',
       copied: 'Copied ✓',
       waitingLive: '⏳ GitHub is publishing the image... the link will work in about a minute',
-      live: '✅ Link is live — ready to use in your notification',
+      live: '✅ Link is live — use it anywhere',
       liveTimeout: '⚠️ Publishing is taking longer than usual. Try the link again in a bit.',
       myImages: 'My images',
       refresh: 'Refresh',
       noImages: 'No images yet.',
       footer: 'Open source — your images stay on your account.',
       del: 'Delete',
-      confirmDel: 'Delete this image? Any notification using this link will lose its image.',
+      confirmDel: 'Delete this image? Anywhere using this link will lose the image.',
       deleted: 'Deleted',
       confirmLogout: 'This removes the token from this browser. Your images stay on GitHub. Continue?',
       pChecking: 'Checking token...',
@@ -129,7 +137,7 @@
       ePrivate: 'This repo is private. It must be public for free links to work.',
       eNotImage: 'That file is not an image.',
       eDecode: 'Your browser can\'t read this image. Try JPG or PNG.',
-      eTooBig: 'Could not compress the image under 1 MB.',
+      eTooBig: 'Could not shrink the image under {size}.',
       sPreparing: 'Preparing image...',
       sCompressed: 'Compressed from {from} to {to}',
       sUploading: 'Uploading...',
@@ -155,7 +163,7 @@
   // ---------------------------------------------------------------- state
   const $ = id => document.getElementById(id);
   let cfg = load();            // { token, owner, repo, branch, base, pagesOk }
-  let pending = null;          // { blob, ext, origSize }
+  let pending = null;          // { blob, ext }
   let lastLive = null;
   let liveTimer = null;
 
@@ -262,7 +270,7 @@
             method: 'POST',
             body: {
               name: repo,
-              description: 'Public images for notifications — uploaded with Image to Link',
+              description: 'Public image links — uploaded with Image to Link',
               private: false,
               auto_init: false,
             },
@@ -369,15 +377,26 @@
   }
   const toBlob = (canvas, type, q) => new Promise(r => canvas.toBlob(r, type, q));
 
-  /** Keep small JPG/PNG as-is; otherwise re-encode to JPEG under MAX_BYTES. */
+  /** Formats every browser can show — uploaded untouched when within the size limit. */
+  const WEB_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' };
+  const compressOn = () => $('compressChk').checked;
+
+  /**
+   * Default: keep the original file (only convert formats browsers can't show,
+   * like HEIC, and shrink anything over MAX_BYTES).
+   * "Compress" option: re-encode to JPEG under SMALL_BYTES (e.g. for push notifications).
+   */
   async function prepare(file) {
     if (!file.type.startsWith('image/') && !/\.(heic|heif)$/i.test(file.name)) throw new Error(t('eNotImage'));
-    const okType = { 'image/jpeg': 'jpg', 'image/png': 'png' }[file.type];
-    if (okType && file.size <= MAX_BYTES) return { blob: file, ext: okType, origSize: file.size };
+    const small = compressOn();
+    const limit = small ? SMALL_BYTES : MAX_BYTES;
+    const maxDim = small ? SMALL_DIM : MAX_DIM;
+    const webExt = WEB_TYPES[file.type];
+    if (webExt && file.size <= limit) return { blob: file, ext: webExt };
 
     const { img, url } = await decode(file);
     try {
-      let scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+      let scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       for (let round = 0; round < 8; round++) {
@@ -386,32 +405,42 @@
         ctx.fillStyle = '#fff';                       // JPEG has no transparency
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        for (const q of [0.9, 0.82, 0.74, 0.65]) {
+        for (const q of [0.92, 0.85, 0.75, 0.65]) {
           const blob = await toBlob(canvas, 'image/jpeg', q);
-          if (blob && blob.size <= MAX_BYTES) return { blob, ext: 'jpg', origSize: file.size };
+          if (blob && blob.size <= limit) return { blob, ext: 'jpg' };
         }
         scale *= 0.8;
       }
-      throw new Error(t('eTooBig'));
+      throw new Error(t('eTooBig', { size: fmtSize(limit) }));
     } finally {
       URL.revokeObjectURL(url);
     }
   }
 
+  let pendingFile = null;   // original file, kept so the compress option can be toggled
+
   async function pick(file) {
     if (!file) return;
+    pendingFile = file;
     resetResult();
+    $('nameInput').value = slug(file.name.replace(/\.[^.]+$/, ''));
+    await process();
+  }
+
+  async function process() {
+    const file = pendingFile;
+    if (!file) return;
     setStatus(t('sPreparing'));
+    $('uploadBtn').disabled = true;
     try {
       pending = await prepare(file);
       const prevUrl = URL.createObjectURL(pending.blob);
       const pi = $('previewImg');
       if (pi.dataset.url) URL.revokeObjectURL(pi.dataset.url);
       pi.src = prevUrl; pi.dataset.url = prevUrl;
-      const base = file.name.replace(/\.[^.]+$/, '');
-      $('nameInput').value = slug(base);
       let meta = `${pending.ext.toUpperCase()} · ${fmtSize(pending.blob.size)}`;
       if (pending.blob !== file) meta += ` — ${t('sCompressed', { from: fmtSize(file.size), to: fmtSize(pending.blob.size) })}`;
+      else meta += ` — ${t('sOriginal')}`;
       $('previewMeta').textContent = meta;
       $('preview').classList.remove('hidden');
       $('drop').classList.add('hidden');
@@ -419,6 +448,8 @@
     } catch (e) {
       pending = null;
       setStatus(e.message, true);
+    } finally {
+      $('uploadBtn').disabled = false;
     }
   }
 
@@ -453,6 +484,7 @@
       $('preview').classList.add('hidden');
       $('drop').classList.remove('hidden');
       pending = null;
+      pendingFile = null;
       showResult(url);
       loadGallery();
     } catch (e) {
@@ -610,8 +642,14 @@
   });
 
   $('uploadBtn').onclick = upload;
+  try { $('compressChk').checked = localStorage.getItem(STORE + '.compress') === '1'; } catch { /* ignore */ }
+  $('compressChk').onchange = () => {
+    try { localStorage.setItem(STORE + '.compress', compressOn() ? '1' : '0'); } catch { /* ignore */ }
+    process();
+  };
   $('cancelBtn').onclick = () => {
     pending = null;
+    pendingFile = null;
     $('preview').classList.add('hidden');
     $('drop').classList.remove('hidden');
     clearStatus();

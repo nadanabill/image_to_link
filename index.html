@@ -67,7 +67,7 @@
           <div class="drop-inner">
             <div class="drop-icon">🖼️</div>
             <div data-i18n="dropText">اختار صورة، أو اسحبها هنا، أو الصقها (Ctrl+V)</div>
-            <div class="muted small-text" data-i18n="dropHint">لو أكبر من 1 ميجا هتتضغط تلقائيًا عشان تشتغل في إشعارات Firebase</div>
+            <div class="muted small-text" data-i18n="dropHint">JPG أو PNG أو GIF أو WebP أو صور الآيفون (HEIC). الصورة بتترفع بجودتها الأصلية.</div>
           </div>
         </label>
 
@@ -78,6 +78,13 @@
             <label class="field">
               <span data-i18n="nameLabel">اسم الملف (اختياري)</span>
               <input id="nameInput" type="text" placeholder="offer-black-friday" spellcheck="false" autocomplete="off" dir="ltr">
+            </label>
+            <label class="check">
+              <input id="compressChk" type="checkbox">
+              <span>
+                <span data-i18n="compressLabel">صغّر الصورة لأقل من 1 ميجا</span>
+                <span class="muted small-text block" data-i18n="compressHint">مفيد للأماكن اللي ليها حد للحجم، زي صور إشعارات Firebase أو الإيميلات.</span>
+              </span>
             </label>
             <div class="row">
               <button id="uploadBtn" class="btn primary" type="button" data-i18n="upload">رفع</button>
