@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image to Link</title>
+  <meta name="description" content="Upload an image to your own GitHub and get a direct public link. Free, no server.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔗</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">🔗 <span data-i18n="title">صورة ← لينك</span></div>
+    <div class="top-actions">
+      <button id="langBtn" class="ghost small" type="button">English</button>
+      <button id="logoutBtn" class="ghost small hidden" type="button" data-i18n="logout">خروج</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ SETUP ============ -->
+    <section id="setupView" class="card hidden">
+      <h1 data-i18n="setupTitle">الإعداد لأول مرة</h1>
+      <p class="muted" data-i18n="setupIntro">الصور هتترفع على حساب GitHub بتاعك إنت، في repo عام. مفيش أي سيرفر في النص، والـ token بيتحفظ في المتصفح ده بس.</p>
+
+      <ol class="steps">
+        <li>
+          <b data-i18n="step1">اختار اسم للـ repo (هيتعمل لوحده لو مش موجود):</b>
+          <input id="repoInput" type="text" value="img-links" spellcheck="false" autocomplete="off" dir="ltr">
+        </li>
+        <li>
+          <b data-i18n="step2">اعمل token من GitHub:</b>
+          <div class="token-options">
+            <a id="classicLink" class="btn secondary" target="_blank" rel="noopener" data-i18n="classicBtn">الطريقة السريعة (Classic token)</a>
+            <details>
+              <summary data-i18n="fineSummary">الطريقة الأكثر أمانًا (Fine-grained)</summary>
+              <ol class="sub" data-i18n-html="fineSteps"></ol>
+            </details>
+          </div>
+        </li>
+        <li>
+          <b data-i18n="step3">الصق الـ token هنا:</b>
+          <input id="tokenInput" type="password" placeholder="ghp_... / github_pat_..." autocomplete="off" spellcheck="false" dir="ltr">
+        </li>
+      </ol>
+
+      <button id="setupBtn" class="btn primary wide" type="button" data-i18n="connect">اتصال وتجهيز</button>
+      <div id="setupLog" class="log hidden"></div>
+    </section>
+
+    <!-- ============ UPLOAD ============ -->
+    <section id="appView" class="hidden">
+      <div class="card">
+        <div class="account muted">
+          <span data-i18n="connectedAs">متصل بـ</span>
+          <a id="repoLink" target="_blank" rel="noopener" dir="ltr"></a>
+        </div>
+
+        <div id="pagesWarn" class="warn hidden">
+          <span data-i18n="pagesWarn">GitHub Pages مش مفعّل على الـ repo، فاللينكات مش هتشتغل. فعّله من هنا: Source = Deploy from a branch، Branch = main / root.</span>
+          <a id="pagesSettingsLink" class="btn secondary small" target="_blank" rel="noopener" data-i18n="openSettings">فتح الإعدادات</a>
+          <button id="recheckPagesBtn" class="btn ghost small" type="button" data-i18n="recheck">فعّلته، اتأكد تاني</button>
+        </div>
+
+        <label id="drop" class="drop" for="fileInput">
+          <input id="fileInput" type="file" accept="image/*" hidden>
+          <div class="drop-inner">
+            <div class="drop-icon">🖼️</div>
+            <div data-i18n="dropText">اختار صورة، أو اسحبها هنا، أو الصقها (Ctrl+V)</div>
+            <div class="muted small-text" data-i18n="dropHint">لو أكبر من 1 ميجا هتتضغط تلقائيًا عشان تشتغل في إشعارات Firebase</div>
+          </div>
+        </label>
+
+        <div id="preview" class="preview hidden">
+          <img id="previewImg" alt="">
+          <div class="preview-info">
+            <div id="previewMeta" class="muted" dir="ltr"></div>
+            <label class="field">
+              <span data-i18n="nameLabel">اسم الملف (اختياري)</span>
+              <input id="nameInput" type="text" placeholder="offer-black-friday" spellcheck="false" autocomplete="off" dir="ltr">
+            </label>
+            <div class="row">
+              <button id="uploadBtn" class="btn primary" type="button" data-i18n="upload">رفع</button>
+              <button id="cancelBtn" class="btn ghost" type="button" data-i18n="cancel">إلغاء</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="status" class="status hidden"></div>
+
+        <div id="result" class="result hidden">
+          <div class="link-row">
+            <input id="resultUrl" type="text" readonly dir="ltr">
+            <button id="copyBtn" class="btn primary" type="button" data-i18n="copy">نسخ</button>
+          </div>
+          <div id="liveState" class="live pending" data-i18n="waitingLive">⏳ GitHub بينشر الصورة... اللينك هيشتغل خلال دقيقة تقريبًا</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <h2 data-i18n="myImages">صوري</h2>
+          <button id="refreshBtn" class="btn ghost small" type="button" data-i18n="refresh">تحديث</button>
+        </div>
+        <div id="gallery" class="gallery"></div>
+        <p id="galleryEmpty" class="muted hidden" data-i18n="noImages">مفيش صور لسه.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="muted small-text">
+    <span data-i18n="footer">مفتوح المصدر — صورك على حسابك إنت.</span>
+    <a href="https://github.com/nadanabill/image_to_link" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
